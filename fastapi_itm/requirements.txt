@@ -1,0 +1,11 @@
+fastapi==0.95.2
+uvicorn==0.22.0
+python-multipart==0.0.6
+sqlalchemy==2.0.15
+psycopg2-binary==2.9.6
+asyncpg==0.27.0
+celery==5.2.7
+pytesseract==0.3.10
+pillow==9.5.0
+pydantic==1.10.7
+alembic == 1.16.4
