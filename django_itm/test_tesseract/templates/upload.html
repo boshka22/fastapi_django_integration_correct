@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0"><i class="bi bi-cloud-upload"></i> Загрузка файла</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="id_file" class="form-label">Выберите файл</label>
+                    <input type="file" class="form-control" name="file" required id="id_file">
+                    <div class="form-text">Поддерживаемые форматы: JPG, PNG, PDF (макс. 10MB)</div>
+                    {% if form.file.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.file.errors|join:", " }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-upload"></i> Загрузить
+                </button>
+                <a href="{% url 'home' %}" class="btn btn-outline-secondary ms-2">
+                    <i class="bi bi-arrow-left"></i> Назад
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Валидация формы
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('form');
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+});
+</script>
+{% endblock %}

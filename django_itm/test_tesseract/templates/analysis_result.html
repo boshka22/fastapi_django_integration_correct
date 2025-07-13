@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}Результаты анализа{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h1 class="card-title"><i class="bi bi-file-earmark-text"></i> Результаты анализа</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Результаты</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-file-image"></i> Исходный документ</h5>
+            </div>
+            <div class="card-body text-center">
+                <img src="{{ MEDIA_URL }}{{ doc.file_path }}" class="img-fluid rounded" alt="Загруженный документ" style="max-height: 400px;">
+            </div>
+            <div class="card-footer">
+                <small class="text-muted">ID: {{ doc.id }} | Тип: {{ doc.file_type }} | Размер: {{ doc.size }} KB</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-text-paragraph"></i> Распознанный текст</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Уверенность распознавания: {{ result.confidence|floatformat:2 }}%
+                </div>
+                <div class="p-3 bg-light rounded" style="height: 300px; overflow-y: auto;">
+                    {{ result.text|linebreaks }}
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Назад
+                    </a>
+                    <button class="btn btn-primary" onclick="window.print()">
+                        <i class="bi bi-printer"></i> Печать
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

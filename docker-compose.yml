@@ -1,0 +1,98 @@
+
+
+services:
+
+  fastapi:
+    build:
+      context: ./fastapi_itm
+      dockerfile: Dockerfile
+    volumes:
+      - ./fastapi_itm:/app
+      - ./fastapi_itm/documents:/app/documents
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+    environment:
+      CELERY_BROKER_URL: "amqp://guest:guest@rabbitmq:5672//"
+    command:
+      sh -c "alembic -c /app/alembic.ini upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+
+  celery-worker:
+    build:
+      context: ./fastapi_itm
+    depends_on:
+      - db
+      - rabbitmq
+    environment:
+      CELERY_BROKER_URL: "amqp://guest:guest@rabbitmq:5672//"
+    volumes:
+      - ./fastapi_itm:/app
+      - ./fastapi_itm/documents:/app/documents
+    command: celery -A app.main.celery worker --loglevel=info
+      
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "status" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: tesseract_db  # добавьте это
+      POSTGRES_USER: postgres    # добавьте это
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db_django:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: tesseract_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 22515
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+  django:
+    build:
+      context: ./django_itm
+      dockerfile: Dockerfile
+    volumes:
+      - ./django_itm:/app
+    ports:
+      - "8001:8001"
+    depends_on:
+      db_django:
+        condition: service_healthy
+
+
+# Секция volumes должна быть на верхнем уровне, вне services
+volumes:
+  postgres_data:

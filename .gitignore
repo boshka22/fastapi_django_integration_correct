@@ -27,7 +27,7 @@ MANIFEST
 
 # Virtual environment
 venv/
-env/
+fastapi_itm/env/
 ENV/
 
 

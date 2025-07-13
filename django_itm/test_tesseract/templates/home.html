@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Мои документы</h2>
+
+    <!-- Кнопки действий -->
+    <div class="d-flex gap-2 mb-4">
+        <a href="{% url 'upload' %}" class="btn btn-primary">
+            <i class="bi bi-upload"></i> Загрузить новый файл
+        </a>
+        <a href="{% url 'delete_document' %}" class="btn btn-outline-danger">
+            <i class="bi bi-trash"></i> Управление документами
+        </a>
+    </div>
+
+    <!-- Список документов -->
+    <div class="row">
+        {% for doc in docs %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <!-- Превью документа -->
+                <div class="card-img-top text-center p-3 bg-light" style="height: 200px;">
+                    {% if doc.file and doc.file.name|lower|slice:'-4:' in '.jpg,.png,.gif,.bmp,.jpeg' %}
+                    <img src="{{ doc.file.url }}"
+                         class="img-fluid h-100"
+                         style="object-fit: contain;"
+                         alt="{{ doc.file.name }}"
+                         onerror="this.src='https://via.placeholder.com/200?text=Ошибка+загрузки'">
+                    {% else %}
+                    <div class="d-flex align-items-center justify-content-center h-100">
+                        <i class="bi bi-file-earmark-text" style="font-size: 3rem;"></i>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Информация о документе -->
+                <div class="card-body">
+                    <h5 class="card-title text-truncate">{{ doc.file.name }}</h5>
+                    <div class="d-flex gap-2 mb-2">
+                        <span class="badge bg-secondary">{{ doc.file.name|slice:'-3:'|upper }}</span>
+                        <span class="badge bg-info text-dark">
+                            {{ doc.file.size|filesizeformat }}
+                        </span>
+                    </div>
+                    <p class="card-text small text-muted">
+                        Загружен: {{ doc.uploaded_at|date:"d.m.Y H:i" }}
+                    </p>
+                </div>
+
+                <!-- Кнопки документа -->
+                <div class="card-footer bg-white border-0">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'analyze' doc.id %}"
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> Анализировать
+                        </a>
+                        <a href="{{ doc.file.url }}"
+                           class="btn btn-sm btn-outline-success"
+                           download>
+                            <i class="bi bi-download"></i> Скачать
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> Нет загруженных документов
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
