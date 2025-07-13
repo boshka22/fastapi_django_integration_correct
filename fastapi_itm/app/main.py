@@ -72,36 +72,39 @@ def startup():
 @app.post("/upload_doc", summary="Загрузите документ", response_model=dict)
 def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db)):
     try:
+        # Создаем папку для документов, если ее нет
         os.makedirs("documents", exist_ok=True)
 
-        # Генерируем имя файла с оригинальным расширением
+        # Генерируем уникальное имя файла
         file_ext = os.path.splitext(file.filename)[1]
         file_name = f"{uuid.uuid4()}{file_ext}"
         file_path = os.path.join("documents", file_name)
 
-        # Сохраняем файл и вычисляем размер (но НЕ сохраняем в БД FastAPI)
-        file_size = 0
+        # Сохраняем файл
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-            file_size = os.path.getsize(file_path) / 1024  # Размер в KB
 
-        # Определяем тип файла (но НЕ сохраняем в БД FastAPI)
+        # Получаем размер файла в КБ
+        file_size = os.path.getsize(file_path) / 1024
+
+        # Определяем тип файла
         file_type = file_ext[1:].lower() if file_ext else 'unknown'
 
-        # Сохраняем в БД FastAPI только path и date (как было изначально)
+        # Сохраняем в базу данных
         doc = Document(path=file_path, date=date.today())
         db.add(doc)
         db.commit()
         db.refresh(doc)
 
-        # Возвращаем Django все нужные поля, включая вычисленные
+        # Возвращаем данные для Django
         return {
-            "file_path": file_path,  # для Django
-            "size": file_size,  # вычисляется, но не хранится в FastAPI
-            "file_type": file_type,  # вычисляется, но не хранится в FastAPI
-            "id": doc.id,  # (опционально, если нужно)
-            "date": doc.date  # (опционально)
+            "id": doc.id,
+            "file_path": file_path,
+            "size": file_size,
+            "file_type": file_type,
+            "date": doc.date.isoformat()
         }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -109,28 +112,37 @@ def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db))
 @app.delete("/doc_delete/{doc_id}", summary="Удалите документ")
 def delete_document(doc_id: int, db: Session = Depends(get_db)):
     try:
+        # Находим документ
         doc = db.query(Document).filter(Document.id == doc_id).first()
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found")
 
-        # Получаем абсолютный путь к файлу
-        file_path = os.path.abspath(doc.path)
+        # Удаляем файл
+        if os.path.exists(doc.path):
+            os.remove(doc.path)
 
-        if os.path.exists(file_path):
-            os.remove(file_path)
-
-        # Удаляем связанные данные и сам документ
-        db.query(DocumentText).filter(DocumentText.id_doc == doc_id).delete()
+        # Удаляем запись из базы
         db.delete(doc)
         db.commit()
 
         return {"message": "Document deleted successfully"}
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/doc_analyse/{doc_id}", summary="Analyze document")
+def analyze_document(doc_id: int, db: Session = Depends(get_db)):
+    try:
+        doc = db.query(Document).filter(Document.id == doc_id).first()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
 
+        task = process_document.delay(doc_id, doc.path)
+        return {"message": "Analysis started", "task_id": task.id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/get_text/{doc_id}", summary="Get extracted text")
 def get_text(doc_id: int, db: Session = Depends(get_db)):
