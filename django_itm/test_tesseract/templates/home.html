@@ -10,7 +10,13 @@
             <i class="bi bi-upload"></i> Загрузить новый файл
         </a>
         <a href="{% url 'delete_document' %}" class="btn btn-outline-danger">
-            <i class="bi bi-trash"></i> Удалить картинОчки
+            <i class="bi bi-trash"></i> Удалить картинОчку
+        </a>
+        <a href="{% url 'analyze_document' %}" class="btn btn-warning">
+            <i class="bi bi-file-earmark-text"></i> Анализировать документ
+        </a>
+        <a href="{% url 'get_document_text' %}" class="btn btn-info">
+            <i class="bi bi-file-text"></i> Получить текст
         </a>
     </div>
 
@@ -51,10 +57,6 @@
                 <!-- Кнопки документа -->
                 <div class="card-footer bg-white border-0">
                     <div class="d-flex justify-content-between">
-                        <a href="{% url 'analyze' doc.id %}"
-                           class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-eye"></i> Анализировать
-                        </a>
                         <a href="{{ doc.file.url }}"
                            class="btn btn-sm btn-outline-success"
                            download>

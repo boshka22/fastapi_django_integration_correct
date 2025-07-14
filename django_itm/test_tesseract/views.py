@@ -6,7 +6,6 @@ from django.contrib import messages
 from .models import Docs, UserToDocs
 from .forms import UploadFileForm, LoginForm, DocumentDeleteForm
 import requests
-import os
 from django.core.files.uploadedfile import InMemoryUploadedFile
 import logging
 logger = logging.getLogger(__name__)
@@ -111,11 +110,6 @@ def logout_view(request):
     return redirect('home')
 
 
-@login_required
-def analyse_doc(request):
-    #потом допишу
-    return render(request, 'analyse.html')
-
 
 @login_required
 @permission_required('auth.delete_document', raise_exception=True)
@@ -154,3 +148,86 @@ def delete_document_view(request):
 
     docs = Docs.objects.all().order_by('-uploaded_at')
     return render(request, 'delete_document.html', {'docs': docs})
+
+
+def analyze_form(request):
+    return render(request, 'analyze_form.html')
+
+
+def get_text_form(request):
+    return render(request, 'get_text_form.html')
+
+
+@login_required
+def analyze_document_view(request):
+    if request.method == 'POST':
+        doc_id = request.POST.get('doc_id')
+
+        try:
+            doc = Docs.objects.get(id=doc_id)
+
+            try:
+                response = requests.post(
+                    f"{settings.FASTAPI_URL}/doc_analyse/{doc.fastapi_id}",
+                    timeout=10
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                messages.success(
+                    request,
+                    f"Анализ документа #{doc.fastapi_id} (Django ID: {doc.id}) запущен. Task ID: {data.get('task_id')}"
+                )
+            except requests.exceptions.RequestException as e:
+                messages.error(request, f"Ошибка при анализе документа: {str(e)}")
+
+            return redirect('analyze_document')
+
+        except Docs.DoesNotExist:
+            messages.error(request, f"Документ с ID {doc_id} не найден")
+        except Exception as e:
+            messages.error(request, f"Ошибка: {str(e)}")
+
+    docs = Docs.objects.all().order_by('-uploaded_at')
+    return render(request, 'analyze_document.html', {'docs': docs})
+
+
+@login_required
+def get_document_text_view(request):
+    if request.method == 'POST':
+        doc_id = request.POST.get('doc_id')
+
+        try:
+            doc = Docs.objects.get(id=doc_id)
+
+            try:
+                response = requests.get(
+                    f"{settings.FASTAPI_URL}/get_text/{doc.fastapi_id}",
+                    timeout=10
+                )
+
+                if response.status_code == 404:
+                    messages.warning(request, f"Текст для документа #{doc.fastapi_id} не найден")
+                    return redirect('get_document_text')
+
+                response.raise_for_status()
+                data = response.json()
+
+                return render(request, 'text_result.html', {
+                    'django_id': doc.id,
+                    'fastapi_id': doc.fastapi_id,
+                    'text': data.get('text', 'Текст не найден')
+                })
+
+            except requests.exceptions.RequestException as e:
+                messages.error(request, f"Ошибка при получении текста: {str(e)}")
+
+            return redirect('get_document_text')
+
+        except Docs.DoesNotExist:
+            messages.error(request, f"Документ с ID {doc_id} не найден")
+        except Exception as e:
+            messages.error(request, f"Ошибка: {str(e)}")
+
+    docs = Docs.objects.all().order_by('-uploaded_at')
+    return render(request, 'get_text_document.html', {'docs': docs})

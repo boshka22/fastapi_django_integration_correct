@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-3">
+    <h2 class="mb-4">Анализ документа</h2>
+
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Список документов</h5>
+            {% if docs %}
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>ID (Django)</th>
+                            <th>ID (FastAPI)</th>
+                            <th>Имя файла</th>
+                            <th>Размер</th>
+                            <th>Дата</th>
+                            <th>Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in docs %}
+                        <tr>
+                            <td>{{ doc.id }}</td>
+                            <td>{{ doc.fastapi_id }}</td>
+                            <td>{{ doc.file.name }}</td>
+                            <td>{{ doc.file.size|filesizeformat }}</td>
+                            <td>{{ doc.uploaded_at|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                <form method="post" action="{% url 'analyze_document' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="doc_id" value="{{ doc.id }}">
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-file-earmark-text"></i> Анализировать
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">Нет документов для отображения</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <a href="{% url 'home' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> На главную
+    </a>
+</div>
+{% endblock %}
