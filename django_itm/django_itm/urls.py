@@ -18,11 +18,19 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django_prometheus.exports import ExportToDjangoView
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 
 urlpatterns = [
+    path('metrics/', ExportToDjangoView, name='prometheus-metrics'),
     path('admin/', admin.site.urls),
-    path('', include('test_tesseract.urls')),  # Включите URL-адреса вашего приложения
+    path('', include('test_tesseract.urls')),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
 
 if settings.DEBUG:

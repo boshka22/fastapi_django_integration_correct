@@ -13,4 +13,5 @@ urlpatterns = [
     path('delete-document/', views.delete_document_view, name='delete_document'),
     path('analyze/', views.analyze_document_view, name='analyze_document'),
     path('get-text/', views.get_document_text_view, name='get_document_text'),
+    path('api/protected/', views.ProtectedView.as_view(), name='protected'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

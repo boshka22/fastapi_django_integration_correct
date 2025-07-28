@@ -7,12 +7,17 @@ from .models import Docs, UserToDocs
 from .forms import UploadFileForm, LoginForm, DocumentDeleteForm
 import requests
 from django.core.files.uploadedfile import InMemoryUploadedFile
-import logging
-logger = logging.getLogger(__name__)
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 # Create your views here.
 
 
+class ProtectedView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request):
+        return Response({"message": "Это защищённый эндпоинт!"})
 def home(request):
     docs = Docs.objects.exclude(file__isnull=True).exclude(file='').all()
     return render(request, 'home.html', {'docs': docs})

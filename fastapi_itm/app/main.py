@@ -1,8 +1,9 @@
 from celery import Celery
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Body
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Body, Response
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from datetime import date
 import os
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 import shutil
 import uuid
 from app.database import SessionLocal, engine, Base
@@ -10,15 +11,14 @@ from app.models import Document, DocumentText
 import pytesseract
 from PIL import Image
 from app.config import settings
+from app.middleware import AdvancedMetricsMiddleware
+from prometheus_client import make_asgi_app
 import logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-
-
 
 celery = Celery(
     'tasks',
@@ -62,12 +62,13 @@ app = FastAPI(
     description="API for document processing with OCR",
     version="1.0.0"
 )
-
+app.add_middleware(AdvancedMetricsMiddleware)
+metrics_app = make_asgi_app()
+app.mount("/metrics", metrics_app)
 
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(bind=engine)
-
 
 @app.post("/upload_doc", summary="Загрузите документ", response_model=dict)
 def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db)):
@@ -112,16 +113,15 @@ def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db))
 @app.delete("/doc_delete/{doc_id}", summary="Удалите документ")
 def delete_document(doc_id: int, db: Session = Depends(get_db)):
     try:
-        # Находим документ
         doc = db.query(Document).filter(Document.id == doc_id).first()
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found")
 
-        # Удаляем файл
+        db.query(DocumentText).filter(DocumentText.id_doc == doc_id).delete()
+
         if os.path.exists(doc.path):
             os.remove(doc.path)
 
-        # Удаляем запись из базы
         db.delete(doc)
         db.commit()
 
@@ -130,6 +130,7 @@ def delete_document(doc_id: int, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
+        db.rollback()  # Важно откатить изменения при ошибке
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/doc_analyse/{doc_id}", summary="Analyze document")
